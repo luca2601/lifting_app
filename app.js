@@ -71,6 +71,8 @@ const els = {
   workoutList: document.querySelector("#workoutList"),
   finishWorkout: document.querySelector("#finishWorkout"),
   planDayName: document.querySelector("#planDayName"),
+  dayNameInput: document.querySelector("#dayNameInput"),
+  dayFocusInput: document.querySelector("#dayFocusInput"),
   planEditor: document.querySelector("#planEditor"),
   addExercise: document.querySelector("#addExercise"),
   chartExercise: document.querySelector("#chartExercise"),
@@ -91,6 +93,8 @@ els.finishWorkout.addEventListener("click", saveWorkout);
 els.addExercise.addEventListener("click", addExercise);
 els.chartExercise.addEventListener("change", drawProgress);
 els.exportButton.addEventListener("click", exportData);
+els.dayNameInput.addEventListener("input", (event) => updateDayName(event.target.value));
+els.dayFocusInput.addEventListener("input", (event) => updateDayFocus(event.target.value));
 
 render();
 
@@ -230,6 +234,8 @@ function renderWorkout() {
 function renderPlan() {
   const day = currentDay();
   els.planDayName.textContent = `${day.name} · ${day.focus}`;
+  els.dayNameInput.value = day.name;
+  els.dayFocusInput.value = day.focus;
   els.planEditor.innerHTML = "";
 
   day.exercises.forEach((exercise, index) => {
@@ -261,6 +267,18 @@ function updateExercise(index, field, value) {
   persist();
   renderProgressOptions();
   renderWorkout();
+}
+
+function updateDayName(value) {
+  currentDay().name = value || "Tag";
+  persist();
+  render();
+}
+
+function updateDayFocus(value) {
+  currentDay().focus = value || "";
+  persist();
+  render();
 }
 
 function addExercise() {

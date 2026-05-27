@@ -188,6 +188,12 @@ h3 {
   margin-bottom: 10px;
 }
 
+.day-details {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .exercise-card,
 .plan-row,
 .history-item,
