@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#111316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Lift Log">
+    <title>Lift Log</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="kicker">Lift Log</p>
+          <h1 id="screenTitle">Training</h1>
+        </div>
+        <button class="icon-button" id="exportButton" type="button" aria-label="Daten exportieren" title="Export">
+          <span aria-hidden="true">↓</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="screen active" id="screen-workout" aria-labelledby="screenTitle">
+          <div class="day-strip" id="dayStrip" aria-label="Trainingstage"></div>
+
+          <section class="panel session-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Heute</p>
+                <h2 id="activeDayName"></h2>
+              </div>
+              <button class="primary-button" id="finishWorkout" type="button">Speichern</button>
+            </div>
+            <div id="workoutList" class="exercise-list"></div>
+          </section>
+        </section>
+
+        <section class="screen" id="screen-plan">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Plan</p>
+                <h2 id="planDayName"></h2>
+              </div>
+              <button class="secondary-button" id="addExercise" type="button">+ Übung</button>
+            </div>
+            <div id="planEditor" class="plan-editor"></div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-progress">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Kraftwerte</p>
+                <h2>Progress</h2>
+              </div>
+              <select id="chartExercise" aria-label="Übung für Diagramm"></select>
+            </div>
+            <canvas id="strengthChart" width="680" height="360" aria-label="Kraftwerte Diagramm"></canvas>
+            <div class="stat-grid" id="statGrid"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head compact">
+              <div>
+                <p class="eyebrow">Nächster Schritt</p>
+                <h2>Empfehlungen</h2>
+              </div>
+            </div>
+            <div id="recommendations" class="recommendation-list"></div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-history">
+          <div class="panel">
+            <div class="panel-head compact">
+              <div>
+                <p class="eyebrow">Logbuch</p>
+                <h2>Historie</h2>
+              </div>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="Navigation">
+        <button class="tab active" data-screen="workout" type="button">
+          <span aria-hidden="true">▣</span>
+          Training
+        </button>
+        <button class="tab" data-screen="plan" type="button">
+          <span aria-hidden="true">✎</span>
+          Plan
+        </button>
+        <button class="tab" data-screen="progress" type="button">
+          <span aria-hidden="true">⌁</span>
+          Werte
+        </button>
+        <button class="tab" data-screen="history" type="button">
+          <span aria-hidden="true">◷</span>
+          Verlauf
+        </button>
+      </nav>
+    </div>
+
+    <dialog id="toastDialog">
+      <p id="toastText"></p>
+    </dialog>
+
+    <script src="app.js" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./service-worker.js");
+        });
+      }
+    </script>
+  </body>
+</html>
