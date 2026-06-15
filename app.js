@@ -1,4 +1,4 @@
-const STORAGE_KEY = "lift-log-v1";
+const STORAGE_KEY = "lift-log-v2";
 const MIN_TRAINING_DAYS = 1;
 const MAX_TRAINING_DAYS = 31;
 
@@ -7,57 +7,8 @@ const defaultState = {
   plan: [
     {
       name: "Tag 1",
-      focus: "Push schwer",
-      exercises: [
-        { id: uid(), name: "Bankdrücken", sets: 4, reps: 6, weight: 80 },
-        { id: uid(), name: "Schulterdrücken", sets: 3, reps: 8, weight: 42.5 },
-        { id: uid(), name: "Dips", sets: 3, reps: 10, weight: 0 }
-      ]
-    },
-    {
-      name: "Tag 2",
-      focus: "Pull schwer",
-      exercises: [
-        { id: uid(), name: "Kreuzheben", sets: 3, reps: 5, weight: 130 },
-        { id: uid(), name: "Klimmzüge", sets: 4, reps: 8, weight: 0 },
-        { id: uid(), name: "Langhantelrudern", sets: 3, reps: 8, weight: 70 }
-      ]
-    },
-    {
-      name: "Tag 3",
-      focus: "Beine schwer",
-      exercises: [
-        { id: uid(), name: "Kniebeuge", sets: 4, reps: 6, weight: 100 },
-        { id: uid(), name: "Rumänisches Kreuzheben", sets: 3, reps: 8, weight: 85 },
-        { id: uid(), name: "Beinpresse", sets: 3, reps: 10, weight: 180 }
-      ]
-    },
-    {
-      name: "Tag 4",
-      focus: "Push Volumen",
-      exercises: [
-        { id: uid(), name: "Schrägbankdrücken", sets: 4, reps: 8, weight: 62.5 },
-        { id: uid(), name: "Seitheben", sets: 4, reps: 12, weight: 12.5 },
-        { id: uid(), name: "Trizepsdrücken", sets: 3, reps: 12, weight: 35 }
-      ]
-    },
-    {
-      name: "Tag 5",
-      focus: "Pull Volumen",
-      exercises: [
-        { id: uid(), name: "Latziehen", sets: 4, reps: 10, weight: 70 },
-        { id: uid(), name: "Kabelrudern", sets: 4, reps: 10, weight: 65 },
-        { id: uid(), name: "Bizepscurls", sets: 3, reps: 12, weight: 17.5 }
-      ]
-    },
-    {
-      name: "Tag 6",
-      focus: "Beine Volumen",
-      exercises: [
-        { id: uid(), name: "Frontkniebeuge", sets: 4, reps: 8, weight: 72.5 },
-        { id: uid(), name: "Ausfallschritte", sets: 3, reps: 10, weight: 24 },
-        { id: uid(), name: "Beinbeuger", sets: 3, reps: 12, weight: 45 }
-      ]
+      focus: "",
+      exercises: []
     }
   ],
   sessions: []
