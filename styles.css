@@ -188,10 +188,26 @@ h3 {
   margin-bottom: 10px;
 }
 
+.day-count-panel {
+  padding: 10px;
+}
+
 .day-details {
   display: grid;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.day-count-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .exercise-card,
@@ -245,6 +261,7 @@ h3 {
 }
 
 .set-row input,
+.day-count-field input,
 .plan-row input,
 select {
   width: 100%;
@@ -258,6 +275,7 @@ select {
 }
 
 .set-row input:focus,
+.day-count-field input:focus,
 .plan-row input:focus,
 select:focus {
   border-color: var(--accent);

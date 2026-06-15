@@ -1,4 +1,6 @@
 const STORAGE_KEY = "lift-log-v1";
+const MIN_TRAINING_DAYS = 1;
+const MAX_TRAINING_DAYS = 31;
 
 const defaultState = {
   activeDay: 0,
@@ -71,6 +73,7 @@ const els = {
   workoutList: document.querySelector("#workoutList"),
   finishWorkout: document.querySelector("#finishWorkout"),
   planDayName: document.querySelector("#planDayName"),
+  dayCountInput: document.querySelector("#dayCountInput"),
   dayNameInput: document.querySelector("#dayNameInput"),
   dayFocusInput: document.querySelector("#dayFocusInput"),
   planEditor: document.querySelector("#planEditor"),
@@ -93,6 +96,7 @@ els.finishWorkout.addEventListener("click", saveWorkout);
 els.addExercise.addEventListener("click", addExercise);
 els.chartExercise.addEventListener("change", drawProgress);
 els.exportButton.addEventListener("click", exportData);
+els.dayCountInput.addEventListener("change", (event) => updateDayCount(event.target.value));
 els.dayNameInput.addEventListener("input", (event) => updateDayName(event.target.value));
 els.dayFocusInput.addEventListener("input", (event) => updateDayFocus(event.target.value));
 
@@ -121,6 +125,14 @@ function persist() {
 
 function currentDay() {
   return state.plan[state.activeDay];
+}
+
+function createTrainingDay(index) {
+  return {
+    name: `Tag ${index + 1}`,
+    focus: "",
+    exercises: []
+  };
 }
 
 function buildDraft() {
@@ -236,6 +248,7 @@ function renderWorkout() {
 function renderPlan() {
   const day = currentDay();
   els.planDayName.textContent = `${day.name} · ${day.focus}`;
+  els.dayCountInput.value = state.plan.length;
   els.dayNameInput.value = day.name;
   els.dayFocusInput.value = day.focus;
   els.planEditor.innerHTML = "";
@@ -279,6 +292,29 @@ function updateDayName(value) {
 
 function updateDayFocus(value) {
   currentDay().focus = value || "";
+  persist();
+  render();
+}
+
+function updateDayCount(value) {
+  const nextCount = Math.min(MAX_TRAINING_DAYS, Math.max(MIN_TRAINING_DAYS, Math.round(numberValue(value, state.plan.length))));
+  const currentCount = state.plan.length;
+
+  if (nextCount === currentCount) {
+    els.dayCountInput.value = currentCount;
+    return;
+  }
+
+  if (nextCount > currentCount) {
+    for (let index = currentCount; index < nextCount; index += 1) {
+      state.plan.push(createTrainingDay(index));
+    }
+  } else {
+    state.plan = state.plan.slice(0, nextCount);
+    state.activeDay = Math.min(state.activeDay, nextCount - 1);
+  }
+
+  draft = buildDraft();
   persist();
   render();
 }
