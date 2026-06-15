@@ -304,6 +304,9 @@ function updateDayCount(value) {
   } else {
     state.plan = state.plan.slice(0, nextCount);
     state.activeDay = Math.min(state.activeDay, nextCount - 1);
+    Object.keys(state.drafts).forEach((key) => {
+      if (Number(key) >= nextCount) delete state.drafts[key];
+    });
   }
 
   draft = buildDraft();
@@ -540,9 +543,8 @@ function renderHistory() {
 
 function exportData() {
   const data = JSON.stringify(state, null, 2);
-  navigator.clipboard?.writeText(data).then(
-    () => toast("Daten als JSON kopiert."),
-    () => {
+  const download = () => {
+    try {
       const blob = new Blob([data], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -550,7 +552,20 @@ function exportData() {
       link.download = "lift-log-export.json";
       link.click();
       URL.revokeObjectURL(url);
+      toast("Daten als JSON heruntergeladen.");
+    } catch {
+      toast("Export fehlgeschlagen.");
     }
+  };
+
+  if (!navigator.clipboard?.writeText) {
+    download();
+    return;
+  }
+
+  navigator.clipboard.writeText(data).then(
+    () => toast("Daten als JSON kopiert."),
+    download
   );
 }
 
