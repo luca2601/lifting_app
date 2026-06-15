@@ -299,6 +299,33 @@ select {
   outline: none;
 }
 
+.plan-field,
+.set-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.plan-field span,
+.set-field span {
+  position: absolute;
+  right: 10px;
+  top: 5px;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.plan-field input,
+.set-field input {
+  padding-top: 15px;
+  padding-right: 10px;
+}
+
 .set-row input:focus,
 .day-count-field input:focus,
 .plan-row input:focus,

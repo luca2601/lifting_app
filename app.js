@@ -229,8 +229,14 @@ function renderWorkout() {
       row.className = "set-row";
       row.innerHTML = `
         <span class="set-index">${setIndex + 1}</span>
-        <input inputmode="decimal" aria-label="Gewicht ${exercise.name} Satz ${setIndex + 1}" value="${set.weight}" data-field="weight">
-        <input inputmode="numeric" aria-label="Wiederholungen ${exercise.name} Satz ${setIndex + 1}" value="${set.reps}" data-field="reps">
+        <label class="set-field">
+          <span>kg</span>
+          <input inputmode="decimal" aria-label="Gewicht ${exercise.name} Satz ${setIndex + 1}" value="${set.weight}" data-field="weight">
+        </label>
+        <label class="set-field">
+          <span>Wdh</span>
+          <input inputmode="numeric" aria-label="Wiederholungen ${exercise.name} Satz ${setIndex + 1}" value="${set.reps}" data-field="reps">
+        </label>
         <button class="hit-toggle${set.done ? " done" : ""}" type="button" aria-label="Satz erledigt">${set.done ? "✓" : "○"}</button>
       `;
 
@@ -284,9 +290,18 @@ function renderPlan() {
     row.className = "plan-row";
     row.innerHTML = `
       <input aria-label="Übungsname" value="${escapeAttr(exercise.name)}">
-      <input inputmode="numeric" aria-label="Sätze" value="${exercise.sets}">
-      <input inputmode="numeric" aria-label="Wiederholungen" value="${exercise.reps}">
-      <input inputmode="decimal" aria-label="Gewicht" value="${exercise.weight}">
+      <label class="plan-field">
+        <span>Sätze</span>
+        <input inputmode="numeric" aria-label="Sätze" value="${exercise.sets}">
+      </label>
+      <label class="plan-field">
+        <span>Wdh</span>
+        <input inputmode="numeric" aria-label="Wiederholungen" value="${exercise.reps}">
+      </label>
+      <label class="plan-field">
+        <span>kg</span>
+        <input inputmode="decimal" aria-label="Gewicht" value="${exercise.weight}">
+      </label>
       <button class="danger-button" type="button" aria-label="Übung löschen">×</button>
     `;
 
