@@ -17,6 +17,7 @@ const defaultState = {
 
 let state = loadState();
 let draft = buildDraft();
+let draftHasChanges = false;
 
 const els = {
   title: document.querySelector("#screenTitle"),
@@ -27,6 +28,7 @@ const els = {
   finishWorkout: document.querySelector("#finishWorkout"),
   planDayName: document.querySelector("#planDayName"),
   dayCountInput: document.querySelector("#dayCountInput"),
+  dayDetails: document.querySelector("#dayDetails"),
   dayNameInput: document.querySelector("#dayNameInput"),
   dayFocusInput: document.querySelector("#dayFocusInput"),
   planEditor: document.querySelector("#planEditor"),
@@ -122,9 +124,46 @@ function buildDraft() {
   }));
 }
 
+function buildEmptyDraftFromPlan() {
+  return currentDay().exercises.map((exercise) => ({
+    exerciseId: exercise.id,
+    name: exercise.name,
+    targetReps: Number(exercise.reps) || 0,
+    sets: Array.from({ length: Number(exercise.sets) || 1 }, () => ({
+      reps: Number(exercise.reps) || 0,
+      weight: Number(exercise.weight) || 0,
+      done: false
+    }))
+  }));
+}
+
+function computeDraftHasChanges() {
+  const day = currentDay();
+
+  return draft.some((draftExercise) => {
+    const plannedExercise = day.exercises.find((exercise) => exercise.id === draftExercise.exerciseId);
+    if (!plannedExercise) return draftExercise.sets.length > 0;
+
+    const plannedSets = Number(plannedExercise.sets) || 1;
+    if (draftExercise.sets.length > plannedSets) return true;
+
+    return draftExercise.sets.some((set) =>
+      Boolean(set.done) ||
+      Number(set.reps) !== (Number(plannedExercise.reps) || 0) ||
+      Number(set.weight) !== (Number(plannedExercise.weight) || 0)
+    );
+  });
+}
+
+function updateDraftStatus() {
+  draftHasChanges = computeDraftHasChanges();
+  els.finishWorkout.classList.toggle("idle", !draftHasChanges);
+}
+
 function persistDraft() {
   state.drafts[state.activeDay] = clone(draft);
   persist();
+  updateDraftStatus();
 }
 
 function clearDraftChecks() {
@@ -141,6 +180,7 @@ function showScreen(screen) {
   document.querySelector(`#screen-${screen}`).classList.add("active");
   document.querySelectorAll(".tab").forEach((button) => button.classList.toggle("active", button.dataset.screen === screen));
   els.title.textContent = screen === "workout" ? "Training" : screen === "plan" ? "Plan" : screen === "progress" ? "Kraftwerte" : "Verlauf";
+  if (screen === "plan") renderPlan();
   if (screen === "progress") drawProgress();
 }
 
@@ -181,6 +221,7 @@ function renderWorkout() {
 
   if (!draft.length) {
     els.workoutList.append(empty("Keine Übungen in diesem Trainingstag."));
+    updateDraftStatus();
     return;
   }
 
@@ -235,15 +276,26 @@ function renderWorkout() {
     });
     els.workoutList.append(card);
   });
+
+  updateDraftStatus();
 }
 
 function renderPlan() {
+  updateDraftStatus();
   const day = currentDay();
   els.planDayName.textContent = `${day.name} · ${day.focus}`;
   els.dayCountInput.value = state.plan.length;
+  els.dayCountInput.disabled = draftHasChanges;
+  els.addExercise.disabled = draftHasChanges;
   els.dayNameInput.value = day.name;
   els.dayFocusInput.value = day.focus;
+  els.dayDetails.hidden = draftHasChanges;
   els.planEditor.innerHTML = "";
+
+  if (draftHasChanges) {
+    els.planEditor.append(empty("Speichere dein Training oder setze es zurück, um den Plan zu bearbeiten."));
+    return;
+  }
 
   day.exercises.forEach((exercise, index) => {
     const row = document.createElement("div");
@@ -329,7 +381,8 @@ function removeExercise(index) {
 }
 
 function resetWorkoutChecks() {
-  clearDraftChecks();
+  draft = buildEmptyDraftFromPlan();
+  persistDraft();
   renderWorkout();
 }
 
