@@ -47,7 +47,7 @@ document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => showScreen(button.dataset.screen));
 });
 
-els.resetWorkout.addEventListener("click", resetWorkoutChecks);
+els.resetWorkout.addEventListener("click", resetWorkoutDraft);
 els.finishWorkout.addEventListener("click", saveWorkout);
 els.addExercise.addEventListener("click", addExercise);
 els.chartExercise.addEventListener("change", drawProgress);
@@ -138,21 +138,7 @@ function buildEmptyDraftFromPlan() {
 }
 
 function computeDraftHasChanges() {
-  const day = currentDay();
-
-  return draft.some((draftExercise) => {
-    const plannedExercise = day.exercises.find((exercise) => exercise.id === draftExercise.exerciseId);
-    if (!plannedExercise) return draftExercise.sets.length > 0;
-
-    const plannedSets = Number(plannedExercise.sets) || 1;
-    if (draftExercise.sets.length > plannedSets) return true;
-
-    return draftExercise.sets.some((set) =>
-      Boolean(set.done) ||
-      Number(set.reps) !== (Number(plannedExercise.reps) || 0) ||
-      Number(set.weight) !== (Number(plannedExercise.weight) || 0)
-    );
-  });
+  return draft.some((exercise) => exercise.sets.some((set) => set.done));
 }
 
 function updateDraftStatus() {
@@ -166,12 +152,8 @@ function persistDraft() {
   updateDraftStatus();
 }
 
-function clearDraftChecks() {
-  draft.forEach((exercise) => {
-    exercise.sets.forEach((set) => {
-      set.done = false;
-    });
-  });
+function resetDraftFromPlan() {
+  draft = buildEmptyDraftFromPlan();
   persistDraft();
 }
 
@@ -322,21 +304,20 @@ function renderPlan() {
 
 function updateExercise(index, field, value) {
   currentDay().exercises[index][field] = value;
-  draft = buildDraft();
-  persistDraft();
+  resetDraftFromPlan();
   renderProgressOptions();
   renderWorkout();
 }
 
 function updateDayName(value) {
   currentDay().name = value || "Tag";
-  persist();
+  resetDraftFromPlan();
   render();
 }
 
 function updateDayFocus(value) {
   currentDay().focus = value || "";
-  persist();
+  resetDraftFromPlan();
   render();
 }
 
@@ -361,29 +342,25 @@ function updateDayCount(value) {
     });
   }
 
-  draft = buildDraft();
-  persist();
+  resetDraftFromPlan();
   render();
 }
 
 function addExercise() {
   currentDay().exercises.push({ id: uid(), name: "Neue Übung", sets: 3, reps: 8, weight: 0 });
-  draft = buildDraft();
-  persistDraft();
+  resetDraftFromPlan();
   render();
 }
 
 function removeExercise(index) {
   currentDay().exercises.splice(index, 1);
-  draft = buildDraft();
-  persistDraft();
+  resetDraftFromPlan();
   render();
 }
 
-function resetWorkoutChecks() {
-  draft = buildEmptyDraftFromPlan();
-  persistDraft();
-  renderWorkout();
+function resetWorkoutDraft() {
+  resetDraftFromPlan();
+  render();
 }
 
 function saveWorkout() {
@@ -417,8 +394,7 @@ function saveWorkout() {
   });
 
   persist();
-  draft = buildDraft();
-  clearDraftChecks();
+  resetDraftFromPlan();
   render();
   toast("Training gespeichert.");
 }
