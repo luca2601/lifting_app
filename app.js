@@ -11,7 +11,8 @@ const defaultState = {
       exercises: []
     }
   ],
-  sessions: []
+  sessions: [],
+  drafts: {}
 };
 
 let state = loadState();
@@ -22,6 +23,7 @@ const els = {
   dayStrips: document.querySelectorAll(".day-strip"),
   activeDayName: document.querySelector("#activeDayName"),
   workoutList: document.querySelector("#workoutList"),
+  resetWorkout: document.querySelector("#resetWorkout"),
   finishWorkout: document.querySelector("#finishWorkout"),
   planDayName: document.querySelector("#planDayName"),
   dayCountInput: document.querySelector("#dayCountInput"),
@@ -43,6 +45,7 @@ document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => showScreen(button.dataset.screen));
 });
 
+els.resetWorkout.addEventListener("click", resetWorkoutChecks);
 els.finishWorkout.addEventListener("click", saveWorkout);
 els.addExercise.addEventListener("click", addExercise);
 els.chartExercise.addEventListener("change", drawProgress);
@@ -64,7 +67,8 @@ function clone(value) {
 function loadState() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : clone(defaultState);
+    const loaded = stored ? JSON.parse(stored) : clone(defaultState);
+    return normalizeState(loaded);
   } catch {
     return clone(defaultState);
   }
@@ -72,6 +76,18 @@ function loadState() {
 
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function normalizeState(value) {
+  const plan = Array.isArray(value.plan) && value.plan.length ? value.plan : clone(defaultState.plan);
+  const activeDay = Number.isInteger(value.activeDay) ? value.activeDay : 0;
+
+  return {
+    activeDay: Math.min(Math.max(activeDay, 0), plan.length - 1),
+    plan,
+    sessions: Array.isArray(value.sessions) ? value.sessions : [],
+    drafts: value.drafts && typeof value.drafts === "object" ? value.drafts : {}
+  };
 }
 
 function currentDay() {
@@ -87,16 +103,37 @@ function createTrainingDay(index) {
 }
 
 function buildDraft() {
+  const savedDraft = Array.isArray(state.drafts?.[state.activeDay]) ? state.drafts[state.activeDay] : [];
+
   return currentDay().exercises.map((exercise) => ({
     exerciseId: exercise.id,
     name: exercise.name,
     targetReps: Number(exercise.reps) || 0,
-    sets: Array.from({ length: Number(exercise.sets) || 1 }, (_, index) => ({
-      reps: Number(exercise.reps) || 0,
-      weight: Number(exercise.weight) || 0,
-      done: index === 0
-    }))
+    sets: Array.from({ length: Number(exercise.sets) || 1 }, (_, index) => {
+      const savedExercise = savedDraft.find((item) => item.exerciseId === exercise.id);
+      const savedSet = savedExercise?.sets?.[index];
+
+      return {
+        reps: Number(savedSet?.reps ?? exercise.reps) || 0,
+        weight: Number(savedSet?.weight ?? exercise.weight) || 0,
+        done: Boolean(savedSet?.done)
+      };
+    })
   }));
+}
+
+function persistDraft() {
+  state.drafts[state.activeDay] = clone(draft);
+  persist();
+}
+
+function clearDraftChecks() {
+  draft.forEach((exercise) => {
+    exercise.sets.forEach((set) => {
+      set.done = false;
+    });
+  });
+  persistDraft();
 }
 
 function showScreen(screen) {
@@ -176,12 +213,15 @@ function renderWorkout() {
 
       row.querySelector('[data-field="weight"]').addEventListener("input", (event) => {
         draft[exerciseIndex].sets[setIndex].weight = numberValue(event.target.value);
+        persistDraft();
       });
       row.querySelector('[data-field="reps"]').addEventListener("input", (event) => {
         draft[exerciseIndex].sets[setIndex].reps = numberValue(event.target.value);
+        persistDraft();
       });
       row.querySelector(".hit-toggle").addEventListener("click", () => {
         draft[exerciseIndex].sets[setIndex].done = !draft[exerciseIndex].sets[setIndex].done;
+        persistDraft();
         renderWorkout();
       });
       setGrid.append(row);
@@ -190,6 +230,7 @@ function renderWorkout() {
     card.querySelector('[data-action="set"]').addEventListener("click", () => {
       const last = exercise.sets[exercise.sets.length - 1] || { reps: exercise.targetReps, weight: 0 };
       draft[exerciseIndex].sets.push({ reps: last.reps, weight: last.weight, done: false });
+      persistDraft();
       renderWorkout();
     });
     els.workoutList.append(card);
@@ -230,7 +271,7 @@ function renderPlan() {
 function updateExercise(index, field, value) {
   currentDay().exercises[index][field] = value;
   draft = buildDraft();
-  persist();
+  persistDraft();
   renderProgressOptions();
   renderWorkout();
 }
@@ -273,15 +314,20 @@ function updateDayCount(value) {
 function addExercise() {
   currentDay().exercises.push({ id: uid(), name: "Neue Übung", sets: 3, reps: 8, weight: 0 });
   draft = buildDraft();
-  persist();
+  persistDraft();
   render();
 }
 
 function removeExercise(index) {
   currentDay().exercises.splice(index, 1);
   draft = buildDraft();
-  persist();
+  persistDraft();
   render();
+}
+
+function resetWorkoutChecks() {
+  clearDraftChecks();
+  renderWorkout();
 }
 
 function saveWorkout() {
@@ -316,6 +362,7 @@ function saveWorkout() {
 
   persist();
   draft = buildDraft();
+  clearDraftChecks();
   render();
   toast("Training gespeichert.");
 }

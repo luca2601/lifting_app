@@ -131,6 +131,12 @@ h3 {
   color: #ffb6ae;
 }
 
+.workout-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .screen {
   display: none;
 }
@@ -532,6 +538,14 @@ dialog p {
   .secondary-button,
   .ghost-button {
     padding: 0 12px;
+  }
+
+  .workout-actions {
+    width: 100%;
+  }
+
+  .workout-actions button {
+    flex: 1 1 0;
   }
 
   .set-row {
