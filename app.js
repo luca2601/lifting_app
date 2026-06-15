@@ -66,7 +66,7 @@ let draft = buildDraft();
 
 const els = {
   title: document.querySelector("#screenTitle"),
-  dayStrip: document.querySelector("#dayStrip"),
+  dayStrips: document.querySelectorAll(".day-strip"),
   activeDayName: document.querySelector("#activeDayName"),
   workoutList: document.querySelector("#workoutList"),
   finishWorkout: document.querySelector("#finishWorkout"),
@@ -155,20 +155,22 @@ function render() {
 }
 
 function renderDays() {
-  els.dayStrip.innerHTML = "";
-  state.plan.forEach((day, index) => {
-    const button = document.createElement("button");
-    button.className = `day-pill${index === state.activeDay ? " active" : ""}`;
-    button.type = "button";
-    button.textContent = day.name;
-    button.setAttribute("aria-label", `${day.name} ${day.focus}`);
-    button.addEventListener("click", () => {
-      state.activeDay = index;
-      draft = buildDraft();
-      persist();
-      render();
+  els.dayStrips.forEach((strip) => {
+    strip.innerHTML = "";
+    state.plan.forEach((day, index) => {
+      const button = document.createElement("button");
+      button.className = `day-pill${index === state.activeDay ? " active" : ""}`;
+      button.type = "button";
+      button.textContent = day.name;
+      button.setAttribute("aria-label", `${day.name} ${day.focus}`);
+      button.addEventListener("click", () => {
+        state.activeDay = index;
+        draft = buildDraft();
+        persist();
+        render();
+      });
+      strip.append(button);
     });
-    els.dayStrip.append(button);
   });
 }
 
