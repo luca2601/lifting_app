@@ -1,76 +1,34 @@
-const STORAGE_KEY = "lift-log-v1";
+const STORAGE_KEY = "lift-log-v2";
+const MIN_TRAINING_DAYS = 1;
+const MAX_TRAINING_DAYS = 31;
 
 const defaultState = {
   activeDay: 0,
   plan: [
     {
       name: "Tag 1",
-      focus: "Push schwer",
-      exercises: [
-        { id: uid(), name: "Bankdrücken", sets: 4, reps: 6, weight: 80 },
-        { id: uid(), name: "Schulterdrücken", sets: 3, reps: 8, weight: 42.5 },
-        { id: uid(), name: "Dips", sets: 3, reps: 10, weight: 0 }
-      ]
-    },
-    {
-      name: "Tag 2",
-      focus: "Pull schwer",
-      exercises: [
-        { id: uid(), name: "Kreuzheben", sets: 3, reps: 5, weight: 130 },
-        { id: uid(), name: "Klimmzüge", sets: 4, reps: 8, weight: 0 },
-        { id: uid(), name: "Langhantelrudern", sets: 3, reps: 8, weight: 70 }
-      ]
-    },
-    {
-      name: "Tag 3",
-      focus: "Beine schwer",
-      exercises: [
-        { id: uid(), name: "Kniebeuge", sets: 4, reps: 6, weight: 100 },
-        { id: uid(), name: "Rumänisches Kreuzheben", sets: 3, reps: 8, weight: 85 },
-        { id: uid(), name: "Beinpresse", sets: 3, reps: 10, weight: 180 }
-      ]
-    },
-    {
-      name: "Tag 4",
-      focus: "Push Volumen",
-      exercises: [
-        { id: uid(), name: "Schrägbankdrücken", sets: 4, reps: 8, weight: 62.5 },
-        { id: uid(), name: "Seitheben", sets: 4, reps: 12, weight: 12.5 },
-        { id: uid(), name: "Trizepsdrücken", sets: 3, reps: 12, weight: 35 }
-      ]
-    },
-    {
-      name: "Tag 5",
-      focus: "Pull Volumen",
-      exercises: [
-        { id: uid(), name: "Latziehen", sets: 4, reps: 10, weight: 70 },
-        { id: uid(), name: "Kabelrudern", sets: 4, reps: 10, weight: 65 },
-        { id: uid(), name: "Bizepscurls", sets: 3, reps: 12, weight: 17.5 }
-      ]
-    },
-    {
-      name: "Tag 6",
-      focus: "Beine Volumen",
-      exercises: [
-        { id: uid(), name: "Frontkniebeuge", sets: 4, reps: 8, weight: 72.5 },
-        { id: uid(), name: "Ausfallschritte", sets: 3, reps: 10, weight: 24 },
-        { id: uid(), name: "Beinbeuger", sets: 3, reps: 12, weight: 45 }
-      ]
+      focus: "",
+      exercises: []
     }
   ],
-  sessions: []
+  sessions: [],
+  drafts: {}
 };
 
 let state = loadState();
 let draft = buildDraft();
+let draftHasChanges = false;
 
 const els = {
   title: document.querySelector("#screenTitle"),
-  dayStrip: document.querySelector("#dayStrip"),
+  dayStrips: document.querySelectorAll(".day-strip"),
   activeDayName: document.querySelector("#activeDayName"),
   workoutList: document.querySelector("#workoutList"),
+  resetWorkout: document.querySelector("#resetWorkout"),
   finishWorkout: document.querySelector("#finishWorkout"),
   planDayName: document.querySelector("#planDayName"),
+  dayCountInput: document.querySelector("#dayCountInput"),
+  dayDetails: document.querySelector("#dayDetails"),
   dayNameInput: document.querySelector("#dayNameInput"),
   dayFocusInput: document.querySelector("#dayFocusInput"),
   planEditor: document.querySelector("#planEditor"),
@@ -89,10 +47,12 @@ document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => showScreen(button.dataset.screen));
 });
 
+els.resetWorkout.addEventListener("click", resetWorkoutDraft);
 els.finishWorkout.addEventListener("click", saveWorkout);
 els.addExercise.addEventListener("click", addExercise);
 els.chartExercise.addEventListener("change", drawProgress);
 els.exportButton.addEventListener("click", exportData);
+els.dayCountInput.addEventListener("change", (event) => updateDayCount(event.target.value));
 els.dayNameInput.addEventListener("input", (event) => updateDayName(event.target.value));
 els.dayFocusInput.addEventListener("input", (event) => updateDayFocus(event.target.value));
 
@@ -109,7 +69,8 @@ function clone(value) {
 function loadState() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : clone(defaultState);
+    const loaded = stored ? JSON.parse(stored) : clone(defaultState);
+    return normalizeState(loaded);
   } catch {
     return clone(defaultState);
   }
@@ -119,21 +80,81 @@ function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function normalizeState(value) {
+  const plan = Array.isArray(value.plan) && value.plan.length ? value.plan : clone(defaultState.plan);
+  const activeDay = Number.isInteger(value.activeDay) ? value.activeDay : 0;
+
+  return {
+    activeDay: Math.min(Math.max(activeDay, 0), plan.length - 1),
+    plan,
+    sessions: Array.isArray(value.sessions) ? value.sessions : [],
+    drafts: value.drafts && typeof value.drafts === "object" ? value.drafts : {}
+  };
+}
+
 function currentDay() {
   return state.plan[state.activeDay];
 }
 
+function createTrainingDay(index) {
+  return {
+    name: `Tag ${index + 1}`,
+    focus: "",
+    exercises: []
+  };
+}
+
 function buildDraft() {
+  const savedDraft = Array.isArray(state.drafts?.[state.activeDay]) ? state.drafts[state.activeDay] : [];
+
   return currentDay().exercises.map((exercise) => ({
     exerciseId: exercise.id,
     name: exercise.name,
     targetReps: Number(exercise.reps) || 0,
-    sets: Array.from({ length: Number(exercise.sets) || 1 }, (_, index) => ({
+    sets: Array.from({ length: Number(exercise.sets) || 1 }, (_, index) => {
+      const savedExercise = savedDraft.find((item) => item.exerciseId === exercise.id);
+      const savedSet = savedExercise?.sets?.[index];
+
+      return {
+        reps: Number(savedSet?.reps ?? exercise.reps) || 0,
+        weight: Number(savedSet?.weight ?? exercise.weight) || 0,
+        done: Boolean(savedSet?.done)
+      };
+    })
+  }));
+}
+
+function buildEmptyDraftFromPlan() {
+  return currentDay().exercises.map((exercise) => ({
+    exerciseId: exercise.id,
+    name: exercise.name,
+    targetReps: Number(exercise.reps) || 0,
+    sets: Array.from({ length: Number(exercise.sets) || 1 }, () => ({
       reps: Number(exercise.reps) || 0,
       weight: Number(exercise.weight) || 0,
-      done: index === 0
+      done: false
     }))
   }));
+}
+
+function computeDraftHasChanges() {
+  return draft.some((exercise) => exercise.sets.some((set) => set.done));
+}
+
+function updateDraftStatus() {
+  draftHasChanges = computeDraftHasChanges();
+  els.finishWorkout.classList.toggle("idle", !draftHasChanges);
+}
+
+function persistDraft() {
+  state.drafts[state.activeDay] = clone(draft);
+  persist();
+  updateDraftStatus();
+}
+
+function resetDraftFromPlan() {
+  draft = buildEmptyDraftFromPlan();
+  persistDraft();
 }
 
 function showScreen(screen) {
@@ -141,6 +162,7 @@ function showScreen(screen) {
   document.querySelector(`#screen-${screen}`).classList.add("active");
   document.querySelectorAll(".tab").forEach((button) => button.classList.toggle("active", button.dataset.screen === screen));
   els.title.textContent = screen === "workout" ? "Training" : screen === "plan" ? "Plan" : screen === "progress" ? "Kraftwerte" : "Verlauf";
+  if (screen === "plan") renderPlan();
   if (screen === "progress") drawProgress();
 }
 
@@ -155,20 +177,22 @@ function render() {
 }
 
 function renderDays() {
-  els.dayStrip.innerHTML = "";
-  state.plan.forEach((day, index) => {
-    const button = document.createElement("button");
-    button.className = `day-pill${index === state.activeDay ? " active" : ""}`;
-    button.type = "button";
-    button.textContent = day.name;
-    button.setAttribute("aria-label", `${day.name} ${day.focus}`);
-    button.addEventListener("click", () => {
-      state.activeDay = index;
-      draft = buildDraft();
-      persist();
-      render();
+  els.dayStrips.forEach((strip) => {
+    strip.innerHTML = "";
+    state.plan.forEach((day, index) => {
+      const button = document.createElement("button");
+      button.className = `day-pill${index === state.activeDay ? " active" : ""}`;
+      button.type = "button";
+      button.textContent = day.name;
+      button.setAttribute("aria-label", `${day.name} ${day.focus}`);
+      button.addEventListener("click", () => {
+        state.activeDay = index;
+        draft = buildDraft();
+        persist();
+        render();
+      });
+      strip.append(button);
     });
-    els.dayStrip.append(button);
   });
 }
 
@@ -179,6 +203,7 @@ function renderWorkout() {
 
   if (!draft.length) {
     els.workoutList.append(empty("Keine Übungen in diesem Trainingstag."));
+    updateDraftStatus();
     return;
   }
 
@@ -204,19 +229,28 @@ function renderWorkout() {
       row.className = "set-row";
       row.innerHTML = `
         <span class="set-index">${setIndex + 1}</span>
-        <input inputmode="decimal" aria-label="Gewicht ${exercise.name} Satz ${setIndex + 1}" value="${set.weight}" data-field="weight">
-        <input inputmode="numeric" aria-label="Wiederholungen ${exercise.name} Satz ${setIndex + 1}" value="${set.reps}" data-field="reps">
+        <label class="set-field">
+          <span>kg</span>
+          <input inputmode="decimal" aria-label="Gewicht ${exercise.name} Satz ${setIndex + 1}" value="${set.weight}" data-field="weight">
+        </label>
+        <label class="set-field">
+          <span>Wdh</span>
+          <input inputmode="numeric" aria-label="Wiederholungen ${exercise.name} Satz ${setIndex + 1}" value="${set.reps}" data-field="reps">
+        </label>
         <button class="hit-toggle${set.done ? " done" : ""}" type="button" aria-label="Satz erledigt">${set.done ? "✓" : "○"}</button>
       `;
 
       row.querySelector('[data-field="weight"]').addEventListener("input", (event) => {
         draft[exerciseIndex].sets[setIndex].weight = numberValue(event.target.value);
+        persistDraft();
       });
       row.querySelector('[data-field="reps"]').addEventListener("input", (event) => {
         draft[exerciseIndex].sets[setIndex].reps = numberValue(event.target.value);
+        persistDraft();
       });
       row.querySelector(".hit-toggle").addEventListener("click", () => {
         draft[exerciseIndex].sets[setIndex].done = !draft[exerciseIndex].sets[setIndex].done;
+        persistDraft();
         renderWorkout();
       });
       setGrid.append(row);
@@ -225,27 +259,49 @@ function renderWorkout() {
     card.querySelector('[data-action="set"]').addEventListener("click", () => {
       const last = exercise.sets[exercise.sets.length - 1] || { reps: exercise.targetReps, weight: 0 };
       draft[exerciseIndex].sets.push({ reps: last.reps, weight: last.weight, done: false });
+      persistDraft();
       renderWorkout();
     });
     els.workoutList.append(card);
   });
+
+  updateDraftStatus();
 }
 
 function renderPlan() {
+  updateDraftStatus();
   const day = currentDay();
   els.planDayName.textContent = `${day.name} · ${day.focus}`;
+  els.dayCountInput.value = state.plan.length;
+  els.dayCountInput.disabled = draftHasChanges;
+  els.addExercise.disabled = draftHasChanges;
   els.dayNameInput.value = day.name;
   els.dayFocusInput.value = day.focus;
+  els.dayDetails.hidden = draftHasChanges;
   els.planEditor.innerHTML = "";
+
+  if (draftHasChanges) {
+    els.planEditor.append(empty("Speichere dein Training oder setze es zurück, um den Plan zu bearbeiten."));
+    return;
+  }
 
   day.exercises.forEach((exercise, index) => {
     const row = document.createElement("div");
     row.className = "plan-row";
     row.innerHTML = `
       <input aria-label="Übungsname" value="${escapeAttr(exercise.name)}">
-      <input inputmode="numeric" aria-label="Sätze" value="${exercise.sets}">
-      <input inputmode="numeric" aria-label="Wiederholungen" value="${exercise.reps}">
-      <input inputmode="decimal" aria-label="Gewicht" value="${exercise.weight}">
+      <label class="plan-field">
+        <span>Sätze</span>
+        <input inputmode="numeric" aria-label="Sätze" value="${exercise.sets}">
+      </label>
+      <label class="plan-field">
+        <span>Wdh</span>
+        <input inputmode="numeric" aria-label="Wiederholungen" value="${exercise.reps}">
+      </label>
+      <label class="plan-field">
+        <span>kg</span>
+        <input inputmode="decimal" aria-label="Gewicht" value="${exercise.weight}">
+      </label>
       <button class="danger-button" type="button" aria-label="Übung löschen">×</button>
     `;
 
@@ -263,35 +319,62 @@ function renderPlan() {
 
 function updateExercise(index, field, value) {
   currentDay().exercises[index][field] = value;
-  draft = buildDraft();
-  persist();
+  resetDraftFromPlan();
   renderProgressOptions();
   renderWorkout();
 }
 
 function updateDayName(value) {
   currentDay().name = value || "Tag";
-  persist();
+  resetDraftFromPlan();
   render();
 }
 
 function updateDayFocus(value) {
   currentDay().focus = value || "";
-  persist();
+  resetDraftFromPlan();
+  render();
+}
+
+function updateDayCount(value) {
+  const nextCount = Math.min(MAX_TRAINING_DAYS, Math.max(MIN_TRAINING_DAYS, Math.round(numberValue(value, state.plan.length))));
+  const currentCount = state.plan.length;
+
+  if (nextCount === currentCount) {
+    els.dayCountInput.value = currentCount;
+    return;
+  }
+
+  if (nextCount > currentCount) {
+    for (let index = currentCount; index < nextCount; index += 1) {
+      state.plan.push(createTrainingDay(index));
+    }
+  } else {
+    state.plan = state.plan.slice(0, nextCount);
+    state.activeDay = Math.min(state.activeDay, nextCount - 1);
+    Object.keys(state.drafts).forEach((key) => {
+      if (Number(key) >= nextCount) delete state.drafts[key];
+    });
+  }
+
+  resetDraftFromPlan();
   render();
 }
 
 function addExercise() {
   currentDay().exercises.push({ id: uid(), name: "Neue Übung", sets: 3, reps: 8, weight: 0 });
-  draft = buildDraft();
-  persist();
+  resetDraftFromPlan();
   render();
 }
 
 function removeExercise(index) {
   currentDay().exercises.splice(index, 1);
-  draft = buildDraft();
-  persist();
+  resetDraftFromPlan();
+  render();
+}
+
+function resetWorkoutDraft() {
+  resetDraftFromPlan();
   render();
 }
 
@@ -326,7 +409,7 @@ function saveWorkout() {
   });
 
   persist();
-  draft = buildDraft();
+  resetDraftFromPlan();
   render();
   toast("Training gespeichert.");
 }
@@ -504,9 +587,8 @@ function renderHistory() {
 
 function exportData() {
   const data = JSON.stringify(state, null, 2);
-  navigator.clipboard?.writeText(data).then(
-    () => toast("Daten als JSON kopiert."),
-    () => {
+  const download = () => {
+    try {
       const blob = new Blob([data], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -514,7 +596,20 @@ function exportData() {
       link.download = "lift-log-export.json";
       link.click();
       URL.revokeObjectURL(url);
+      toast("Daten als JSON heruntergeladen.");
+    } catch {
+      toast("Export fehlgeschlagen.");
     }
+  };
+
+  if (!navigator.clipboard?.writeText) {
+    download();
+    return;
+  }
+
+  navigator.clipboard.writeText(data).then(
+    () => toast("Daten als JSON kopiert."),
+    download
   );
 }
 

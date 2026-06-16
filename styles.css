@@ -41,11 +41,17 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
 .app-shell {
-  max-width: 540px;
+  width: min(100%, 640px);
   min-height: 100svh;
   margin: 0 auto;
-  padding: max(18px, env(safe-area-inset-top)) 14px calc(88px + env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top)) 14px calc(88px + env(safe-area-inset-bottom));
 }
 
 .topbar {
@@ -99,6 +105,7 @@ h3 {
   border: 0;
   border-radius: 8px;
   color: var(--text);
+  flex: 0 0 auto;
 }
 
 .icon-button {
@@ -113,6 +120,13 @@ h3 {
   background: var(--accent);
   color: #1a1710;
   font-weight: 900;
+}
+
+.primary-button.idle {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-weight: 800;
 }
 
 .secondary-button,
@@ -130,6 +144,12 @@ h3 {
   color: #ffb6ae;
 }
 
+.workout-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .screen {
   display: none;
 }
@@ -141,7 +161,7 @@ h3 {
 .day-strip {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(74px, 1fr);
+  grid-auto-columns: minmax(72px, 96px);
   gap: 8px;
   overflow-x: auto;
   padding: 0 0 12px;
@@ -180,18 +200,39 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.panel-head > div {
+  min-width: 0;
 }
 
 .panel-head.compact {
   margin-bottom: 10px;
 }
 
+.day-count-panel {
+  padding: 10px;
+}
+
 .day-details {
   display: grid;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.day-count-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .exercise-card,
@@ -232,19 +273,20 @@ h3 {
 
 .set-row {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 34px;
+  grid-template-columns: 28px minmax(64px, 1fr) minmax(58px, 1fr) 34px;
   gap: 7px;
   align-items: center;
 }
 
 .set-index {
-  width: 30px;
+  width: 28px;
   color: var(--muted);
   font-weight: 900;
   text-align: center;
 }
 
 .set-row input,
+.day-count-field input,
 .plan-row input,
 select {
   width: 100%;
@@ -257,7 +299,35 @@ select {
   outline: none;
 }
 
+.plan-field,
+.set-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.plan-field span,
+.set-field span {
+  position: absolute;
+  right: 10px;
+  top: 5px;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.plan-field input,
+.set-field input {
+  padding-top: 15px;
+  padding-right: 10px;
+}
+
 .set-row input:focus,
+.day-count-field input:focus,
 .plan-row input:focus,
 select:focus {
   border-color: var(--accent);
@@ -304,7 +374,7 @@ select:focus {
 
 canvas {
   width: 100%;
-  min-height: 210px;
+  height: auto;
   display: block;
   border-radius: 8px;
   background: #15191d;
@@ -390,7 +460,7 @@ canvas {
   bottom: 0;
   z-index: 3;
   transform: translateX(-50%);
-  width: min(540px, 100%);
+  width: min(640px, 100%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
@@ -424,9 +494,9 @@ canvas {
 
 dialog {
   position: fixed;
-  inset: auto 14px calc(82px + env(safe-area-inset-bottom)) 14px;
+  inset: auto max(10px, env(safe-area-inset-left)) calc(82px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
   width: auto;
-  max-width: 512px;
+  max-width: 612px;
   margin: 0 auto;
   border: 0;
   border-radius: 8px;
@@ -440,16 +510,44 @@ dialog p {
   font-weight: 900;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .app-shell {
     padding-left: 10px;
     padding-right: 10px;
   }
 
+  h1 {
+    font-size: 30px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .day-strip {
+    grid-auto-columns: minmax(66px, 82px);
+  }
+
+  .day-pill {
+    min-height: 52px;
+  }
+
+  .day-count-field {
+    grid-template-columns: minmax(0, 1fr) 84px;
+  }
+
   .plan-row {
-    grid-template-columns: 1fr 56px 56px 68px 36px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 36px;
     gap: 6px;
     padding: 8px;
+  }
+
+  .plan-row input:first-child {
+    grid-column: 1 / -1;
   }
 
   .plan-row input,
@@ -459,5 +557,59 @@ dialog p {
 
   .stat-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 340px) {
+  .app-shell {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .panel-head {
+    gap: 10px;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .ghost-button {
+    padding: 0 12px;
+  }
+
+  .workout-actions {
+    width: 100%;
+  }
+
+  .workout-actions button {
+    flex: 1 1 0;
+  }
+
+  .set-row {
+    grid-template-columns: 24px minmax(54px, 1fr) minmax(50px, 1fr) 32px;
+    gap: 5px;
+  }
+
+  .set-index {
+    width: 24px;
+  }
+
+  .hit-toggle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tabbar {
+    gap: 4px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .tab {
+    min-height: 50px;
+    font-size: 11px;
   }
 }
